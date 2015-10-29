@@ -1,10 +1,11 @@
-package raftboltdb
+package raft_boltdb
 
 import (
 	"errors"
 
 	"github.com/boltdb/bolt"
-	"github.com/hashicorp/raft"
+	"github.com/stackengine/raft"
+	"github.com/ugorji/go/codec"
 )
 
 const (
@@ -31,10 +32,12 @@ type BoltStore struct {
 
 	// The path to the Bolt database file
 	path string
+
+	mh *codec.MsgpackHandle
 }
 
 // NewBoltStore takes a file path and returns a connected Raft backend.
-func NewBoltStore(path string) (*BoltStore, error) {
+func NewBoltStore(mh *codec.MsgpackHandle, path string) (*BoltStore, error) {
 	// Try to connect
 	handle, err := bolt.Open(path, dbFileMode, nil)
 	if err != nil {
@@ -45,6 +48,7 @@ func NewBoltStore(path string) (*BoltStore, error) {
 	store := &BoltStore{
 		conn: handle,
 		path: path,
+		mh:   mh,
 	}
 
 	// Set up our buckets
@@ -126,7 +130,7 @@ func (b *BoltStore) GetLog(idx uint64, log *raft.Log) error {
 	if val == nil {
 		return raft.ErrLogNotFound
 	}
-	return decodeMsgPack(val, log)
+	return decodeMsgPack(b.mh, val, log)
 }
 
 // StoreLog is used to store a single raft log
@@ -144,7 +148,7 @@ func (b *BoltStore) StoreLogs(logs []*raft.Log) error {
 
 	for _, log := range logs {
 		key := uint64ToBytes(log.Index)
-		val, err := encodeMsgPack(log)
+		val, err := encodeMsgPack(b.mh, log)
 		if err != nil {
 			return err
 		}

@@ -1,4 +1,4 @@
-package raftboltdb
+package raft_boltdb
 
 import (
 	"bytes"
@@ -8,8 +8,11 @@ import (
 	"testing"
 
 	"github.com/boltdb/bolt"
-	"github.com/hashicorp/raft"
+	"github.com/stackengine/raft"
+	"github.com/ugorji/go/codec"
 )
+
+var Mh = &codec.MsgpackHandle{RawToString: true, WriteExt: true}
 
 func testBoltStore(t testing.TB) *BoltStore {
 	fh, err := ioutil.TempFile("", "bolt")
@@ -19,7 +22,7 @@ func testBoltStore(t testing.TB) *BoltStore {
 	os.Remove(fh.Name())
 
 	// Successfully creates and returns a store
-	store, err := NewBoltStore(fh.Name())
+	store, err := NewBoltStore(Mh, fh.Name())
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -53,7 +56,7 @@ func TestNewBoltStore(t *testing.T) {
 	defer os.Remove(fh.Name())
 
 	// Successfully creates and returns a store
-	store, err := NewBoltStore(fh.Name())
+	store, err := NewBoltStore(Mh, fh.Name())
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
